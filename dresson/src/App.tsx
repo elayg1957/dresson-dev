@@ -1,10 +1,10 @@
-import WebAR from "./WebAR"; // Import the WebAR component
+import ARCamera from "./ARCamera"; // Import ARCamera inside App
 
 function App() {
   return (
     <div>
       <h1>DressOn WebAR</h1>
-      <WebAR /> {/* Load the WebAR experience */}
+      <ARCamera /> {/* AR experience is now inside App */}
     </div>
   );
 }
