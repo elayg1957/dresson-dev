@@ -17,6 +17,8 @@ function Cube({ position }: { position: [number, number, number] }) {
 
 // 📌 Hit Test Logic - Detect where to place the cube
 function FloorPlacement({ setPosition }: { setPosition: (pos: [number, number, number]) => void }) {
+  const refSpace = useRef<THREE.Object3D | null>(null); // Reference for hit test
+
   useXRHitTest(
     (hitResults, getWorldMatrix) => {
       if (hitResults.length > 0) {
@@ -25,7 +27,7 @@ function FloorPlacement({ setPosition }: { setPosition: (pos: [number, number, n
         setPosition([matrix.elements[12], matrix.elements[13], matrix.elements[14]]);
       }
     },
-    { space: "viewer" } // ✅ Pass as an object with space property
+    refSpace // Use a valid reference space
   );
 
   return null;
@@ -58,7 +60,7 @@ const ARCamera: React.FC = () => {
 
     try {
       const session = await navigator.xr.requestSession("immersive-ar", {
-        requiredFeatures: ["local-floor", "hit-test"], // ✅ Ensures surface detection works
+        requiredFeatures: ["local-floor", "hit-test"], // Enable object placement
       });
 
       // Attach WebXR session to renderer
@@ -80,9 +82,9 @@ const ARCamera: React.FC = () => {
         <>
           <ARButton store={xrStore} />
           <Canvas>
-            <XR store={xrStore}> {/* ✅ Ensure reference space is set */}
-              <FloorPlacement setPosition={setPosition} /> {/* ✅ Detects ground */}
-              <Cube position={position} /> {/* ✅ Places cube on detected position */}
+            <XR store={xrStore}>
+              <FloorPlacement setPosition={setPosition} /> {/* Detects ground */}
+              <Cube position={position} /> {/* Places cube on detected position */}
             </XR>
           </Canvas>
         </>
