@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 const xrStore = createXRStore(); // WebXR state manager
 
-// 📌 Cube Component (This will be placed on the detected surface)
+// 📌 Cube Component (Will be placed on the detected surface)
 function Cube({ position }: { position: [number, number, number] }) {
   return (
     <mesh position={position}>
@@ -15,27 +15,41 @@ function Cube({ position }: { position: [number, number, number] }) {
   );
 }
 
-// 📌 Hit Test Logic - Detect where to place the cube
-function FloorPlacement({ setPosition }: { setPosition: (pos: [number, number, number]) => void }) {
-  const refSpace = useRef<THREE.Object3D | null>(null); // Reference for hit test
-
-  useXRHitTest(
-    (hitResults, getWorldMatrix) => {
-      if (hitResults.length > 0) {
-        const matrix = new THREE.Matrix4();
-        getWorldMatrix(matrix, hitResults[0]); // Get detected surface position
-        setPosition([matrix.elements[12], matrix.elements[13], matrix.elements[14]]);
-      }
-    },
-    refSpace // Use a valid reference space
+// 📌 Reticle Component (Shows where the object will be placed)
+function Reticle({ position }: { position: [number, number, number] }) {
+  return (
+    <mesh position={position}>
+      <ringGeometry args={[0.1, 0.15, 32]} />
+      <meshStandardMaterial color="white" opacity={0.8} transparent />
+    </mesh>
   );
+}
+
+// 📌 Hit Test Logic - Detect where to place the cube
+function FloorPlacement({
+  setPosition,
+  setReticlePosition,
+}: {
+  setPosition: (pos: [number, number, number]) => void;
+  setReticlePosition: (pos: [number, number, number]) => void;
+}) {
+  useXRHitTest((hitResults) => {
+    if (hitResults.length > 0) {
+      const hitPose = hitResults[0].getPose();
+      if (hitPose) {
+        const { x, y, z } = hitPose.transform.position;
+        setReticlePosition([x, y, z]); // Show reticle where object will be placed
+      }
+    }
+  });
 
   return null;
 }
 
 const ARCamera: React.FC = () => {
   const [isARActive, setIsARActive] = useState(false);
-  const [position, setPosition] = useState<[number, number, number]>([0, 0, -2]); // Default cube position
+  const [position, setPosition] = useState<[number, number, number]>([0, 0, -2]); // Cube position
+  const [reticlePosition, setReticlePosition] = useState<[number, number, number]>([0, 0, -2]); // Reticle position
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   useEffect(() => {
@@ -75,6 +89,11 @@ const ARCamera: React.FC = () => {
     }
   };
 
+  // 📌 Function to place the cube where the reticle is
+  const placeObject = () => {
+    setPosition([...reticlePosition]);
+  };
+
   return (
     <div>
       {!isARActive && <button onClick={startAR}>Start AR</button>}
@@ -83,10 +102,14 @@ const ARCamera: React.FC = () => {
           <ARButton store={xrStore} />
           <Canvas>
             <XR store={xrStore}>
-              <FloorPlacement setPosition={setPosition} /> {/* Detects ground */}
-              <Cube position={position} /> {/* Places cube on detected position */}
+              <FloorPlacement setPosition={setPosition} setReticlePosition={setReticlePosition} />
+              <Reticle position={reticlePosition} /> {/* Show reticle */}
+              <Cube position={position} /> {/* Place cube when selected */}
             </XR>
           </Canvas>
+          <button onClick={placeObject} style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)" }}>
+            Place Object
+          </button>
         </>
       )}
     </div>
