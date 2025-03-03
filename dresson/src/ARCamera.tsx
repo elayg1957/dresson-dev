@@ -3,9 +3,9 @@ import { Canvas } from "@react-three/fiber";
 import { ARButton, XR, createXRStore } from "@react-three/xr";
 import * as THREE from "three";
 
-const xrStore = createXRStore(); // Create WebXR store
+const xrStore = createXRStore(); // WebXR state manager
 
-// 📌 Reticle Component (Initial Static White Circle)
+// 📌 Reticle Component - Shows where objects will be placed
 function Reticle() {
   return (
     <mesh position={[0, 0, -2]}>
@@ -61,10 +61,10 @@ const ARCamera: React.FC = () => {
       {!isARActive && <button onClick={startAR}>Start AR</button>}
       {isARActive && (
         <>
-          <ARButton store={xrStore} /> {/* This handles session start automatically */}
+          <ARButton store={xrStore} />
           <Canvas>
             <XR store={xrStore}>
-              <Reticle /> {/* ✅ Static Reticle for now */}
+              <Reticle /> {/* ✅ Added Reticle */}
             </XR>
           </Canvas>
         </>
