@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { XR, useXRHitTest, createXRStore } from "@react-three/xr";
+import { ARButton, XR, createXRStore, useXRHitTest } from "@react-three/xr";
 import * as THREE from "three";
 
 const xrStore = createXRStore(); // WebXR state manager
@@ -15,56 +15,19 @@ function Cube({ position }: { position: [number, number, number] }) {
   );
 }
 
-// 📌 Reticle - Shows where the object will be placed
-function Reticle({ position }: { position: [number, number, number] }) {
-  return (
-    <mesh position={position} visible={position[1] !== -1000}>
-      <ringGeometry args={[0.15, 0.2, 32]} />
-      <meshStandardMaterial color="white" opacity={0.8} transparent />
-    </mesh>
-  );
-}
-
-// 📌 Hit Test - Detect where to place the cube
-function FloorPlacement({
-  setPosition,
-  setReticlePosition,
-}: {
-  setPosition: (pos: [number, number, number]) => void;
-  setReticlePosition: (pos: [number, number, number]) => void;
-}) {
-  const sessionRef = useRef<XRSession | null>(null); // Store XR session
-  const referenceSpaceRef = useRef<XRReferenceSpace | null>(null); // Store reference space
-
-  useEffect(() => {
-    const setupReferenceSpace = async () => {
-      if (navigator.xr) {
-        try {
-          const session = await navigator.xr.requestSession("immersive-ar", {
-            requiredFeatures: ["local-floor", "hit-test"],
-          });
-          sessionRef.current = session;
-          referenceSpaceRef.current = await session.requestReferenceSpace("local-floor");
-        } catch (error) {
-          console.error("Failed to set up XR reference space:", error);
-        }
-      }
-    };
-
-    setupReferenceSpace();
-  }, []);
-
+// 📌 Hit Test Logic - Detect where to place the cube
+function FloorPlacement({ setPosition }: { setPosition: (pos: [number, number, number]) => void }) {
   useXRHitTest(
     (hitResults) => {
-      if (hitResults.length > 0 && referenceSpaceRef.current) {
-        const hitPose = hitResults[0].getPose(referenceSpaceRef.current);
+      if (hitResults.length > 0) {
+        const hitPose = hitResults[0].getPose(); // Get position from the hit test
         if (hitPose) {
           const { x, y, z } = hitPose.transform.position;
-          setReticlePosition([x, y, z]); // Move reticle to detected surface
+          setPosition([x, y, z]); // Move cube to detected position
         }
       }
     },
-    referenceSpaceRef.current // Pass a valid reference space
+    { space: "viewer" } // Use "viewer" space for correct hit testing
   );
 
   return null;
@@ -73,7 +36,6 @@ function FloorPlacement({
 const ARCamera: React.FC = () => {
   const [isARActive, setIsARActive] = useState(false);
   const [position, setPosition] = useState<[number, number, number]>([0, 0, -2]); // Default cube position
-  const [reticlePosition, setReticlePosition] = useState<[number, number, number]>([0, -1000, 0]); // Hidden initially
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   useEffect(() => {
@@ -113,21 +75,15 @@ const ARCamera: React.FC = () => {
     }
   };
 
-  // Function to place the cube where the reticle is
-  const PlaceObject = () => {
-    setPosition([...reticlePosition]); // Move cube to reticle position
-  };
-
   return (
     <div>
       {!isARActive && <button onClick={startAR}>Start AR</button>}
       {isARActive && (
         <>
-          <button onClick={PlaceObject}>Place Cube</button>
+          <ARButton store={xrStore} />
           <Canvas>
             <XR store={xrStore}>
-              <FloorPlacement setPosition={setPosition} setReticlePosition={setReticlePosition} /> {/* Detects ground */}
-              <Reticle position={reticlePosition} /> {/* Reticle shows detected surface */}
+              <FloorPlacement setPosition={setPosition} /> {/* Detects ground */}
               <Cube position={position} /> {/* Places cube on detected position */}
             </XR>
           </Canvas>
