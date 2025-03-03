@@ -33,19 +33,38 @@ function FloorPlacement({
   setPosition: (pos: [number, number, number]) => void;
   setReticlePosition: (pos: [number, number, number]) => void;
 }) {
-  const referenceSpace = useRef<THREE.Object3D | null>(null); // Correct reference type
+  const sessionRef = useRef<XRSession | null>(null); // Store XR session
+  const referenceSpaceRef = useRef<XRReferenceSpace | null>(null); // Store reference space
+
+  useEffect(() => {
+    const setupReferenceSpace = async () => {
+      if (navigator.xr) {
+        try {
+          const session = await navigator.xr.requestSession("immersive-ar", {
+            requiredFeatures: ["local-floor", "hit-test"],
+          });
+          sessionRef.current = session;
+          referenceSpaceRef.current = await session.requestReferenceSpace("local-floor");
+        } catch (error) {
+          console.error("Failed to set up XR reference space:", error);
+        }
+      }
+    };
+
+    setupReferenceSpace();
+  }, []);
 
   useXRHitTest(
     (hitResults) => {
-      if (hitResults.length > 0) {
-        const hitPose = hitResults[0].getPose(referenceSpace.current as XRSpace);
+      if (hitResults.length > 0 && referenceSpaceRef.current) {
+        const hitPose = hitResults[0].getPose(referenceSpaceRef.current);
         if (hitPose) {
           const { x, y, z } = hitPose.transform.position;
           setReticlePosition([x, y, z]); // Move reticle to detected surface
         }
       }
     },
-    referenceSpace // Pass a valid reference space
+    referenceSpaceRef.current // Pass a valid reference space
   );
 
   return null;
