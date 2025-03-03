@@ -5,6 +5,16 @@ import * as THREE from "three";
 
 const xrStore = createXRStore(); // Create WebXR store
 
+// 📌 Reticle Component (Initial Static White Circle)
+function Reticle() {
+  return (
+    <mesh position={[0, 0, -2]}>
+      <ringGeometry args={[0.15, 0.2, 32]} />
+      <meshStandardMaterial color="white" opacity={0.8} transparent />
+    </mesh>
+  );
+}
+
 const ARCamera: React.FC = () => {
   const [isARActive, setIsARActive] = useState(false);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -54,7 +64,7 @@ const ARCamera: React.FC = () => {
           <ARButton store={xrStore} /> {/* This handles session start automatically */}
           <Canvas>
             <XR store={xrStore}>
-              {/* Empty Scene (Camera Should Open) */}
+              <Reticle /> {/* ✅ Static Reticle for now */}
             </XR>
           </Canvas>
         </>
